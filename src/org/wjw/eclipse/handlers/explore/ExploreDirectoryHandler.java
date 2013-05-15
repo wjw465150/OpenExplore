@@ -8,10 +8,14 @@ import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IAdaptable;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
@@ -70,7 +74,20 @@ public class ExploreDirectoryHandler extends AbstractHandler {
 
 		if ((obj instanceof IPackageFragmentRoot)) {
 			try {
-				return ((IPackageFragmentRoot) obj).getPath().toFile();
+				IPath path = ((IPackageFragmentRoot) obj).getPath();
+				File file = path.toFile();
+				if (!path.toFile().exists()) {
+					//取得工作区的root
+					IWorkspaceRoot wsroot = ResourcesPlugin.getWorkspace().getRoot();
+					IProject refrenceProject = wsroot.getProject(path.segment(0));
+					if (refrenceProject != null) {
+						IPath refProjectPrefix = refrenceProject.getLocation().removeLastSegments(1).removeTrailingSeparator();
+						IPath tmpPath = new Path(refProjectPrefix.toPortableString() + path.toPortableString());
+						path = tmpPath;
+						file = path.toFile();
+					}
+				}
+				return file;
 			} catch (Exception e) {
 				logError("Failed to explore " + ((IJavaElement) obj).getElementName(), e);
 				return null;
